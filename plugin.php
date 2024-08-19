@@ -9,10 +9,9 @@
  * License: GPL2
  */
 
+/** ======================================================================== */
 
- /** ======================================================================== */
-
- /**
+/**
  * 121 Digital Projects Plugin
  *
  * This file defines the main functionality for the 121 Digital Projects Plugin.
@@ -52,6 +51,13 @@ if (!class_exists('Projects_Plugin')) {
       add_action('init', array($this, 'create_projects_taxonomy'), 0);
       add_action('add_meta_boxes', array($this, 'add_project_meta_box'));
       add_action('save_post', array($this, 'save_project_meta_box_data'));
+
+      // Hook to add settings page as a submenu
+      add_action('admin_menu', array($this, 'add_submenu_page'));
+
+      add_action('admin_init', array($this, 'register_settings'));
+
+      add_action('template_redirect', array($this, 'use_custom_page_template_for_projects'));
     }
 
     /**
@@ -92,7 +98,7 @@ if (!class_exists('Projects_Plugin')) {
         'show_ui' => true,
         'show_in_menu' => true,
         'query_var' => true,
-        'rewrite' => array('slug' => 'project'),
+        'rewrite' => array('slug' => 'project'), // Ensure the slug is set correctly
         'capability_type' => 'post',
         'has_archive' => true,
         'hierarchical' => false,
@@ -195,6 +201,108 @@ if (!class_exists('Projects_Plugin')) {
 
       $project_url = sanitize_text_field($_POST['project_url']);
       update_post_meta($post_id, '_project_url', $project_url);
+    }
+
+    /**
+     * Add settings page as a submenu under Projects
+     */
+    public function add_submenu_page() {
+      add_submenu_page(
+        'edit.php?post_type=project',
+        __('Projects Settings', 'projects'),
+        __('Settings', 'projects'),
+        'manage_options',
+        'projects-settings',
+        array($this, 'render_options_page')
+      );
+    }
+
+    /**
+     * Render the options page.
+     */
+    public function render_options_page() {
+      ?>
+      <div class="wrap">
+        <h1><?php _e('Projects Plugin Settings', 'projects'); ?></h1>
+        <form method="post" action="options.php">
+          <?php
+          settings_fields('projects_settings_group');
+          do_settings_sections('projects-settings');
+          submit_button();
+          ?>
+        </form>
+      </div>
+      <?php
+    }
+
+    /**
+     * Register settings and fields for the options page.
+     */
+    public function register_settings() {
+      register_setting('projects_settings_group', 'projects_elementor_template_id');
+
+      add_settings_section(
+        'projects_settings_section',
+        __('Custom Post Type Settings', 'projects'),
+        null,
+        'projects-settings'
+      );
+
+      add_settings_field(
+        'projects_elementor_template',
+        __('Select Elementor Template for Projects', 'projects'),
+        array($this, 'render_template_selector'),
+        'projects-settings',
+        'projects_settings_section'
+      );
+    }
+
+    /**
+     * Render the Elementor template selector field.
+     */
+    public function render_template_selector() {
+      $template_id = get_option('projects_elementor_template_id');
+      ?>
+      <select name="projects_elementor_template_id">
+        <option value=""><?php _e('Select a template', 'projects'); ?></option>
+        <?php
+        $templates = get_posts([
+          'post_type' => 'elementor_library',
+          'posts_per_page' => -1,
+        ]);
+        foreach ($templates as $template) {
+          printf(
+            '<option value="%s"%s>%s</option>',
+            esc_attr($template->ID),
+            selected($template_id, $template->ID, false),
+            esc_html($template->post_title)
+          );
+        }
+        ?>
+      </select>
+      <?php
+    }
+
+    /**
+     * Use Elementor template for custom post type.
+     */
+    public function use_custom_page_template_for_projects() {
+      if (is_singular('project')) {
+        $template_id = get_option('projects_elementor_template_id');
+
+        get_header();
+        if ($template_id) {
+          // Ensure Elementor is active
+          if (class_exists('Elementor\Plugin')) {
+            // Render the Elementor template
+            echo \Elementor\Plugin::instance()->frontend->get_builder_content_for_display($template_id);
+
+            exit; // Stop further processing
+          }
+        }
+
+        get_footer();
+      }
     }
   }
 
