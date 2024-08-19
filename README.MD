@@ -1,6 +1,6 @@
 # 121 Digital Projects Plugin
 
-The 121 Digital Projects Plugin is a comprehensive WordPress plugin that introduces a custom post type called "Projects" and a custom taxonomy called "Project Categories". It also includes a custom Elementor widget for displaying projects in a grid layout, allowing for extensive customization and flexibility.
+The 121 Digital Projects Plugin is a simple but effective WordPress plugin that introduces a custom post type called "Projects" and a custom taxonomy called "Project Categories". It also includes a custom Elementor widget for displaying projects in a grid layout, allowing for extensive customization and flexibility.
 
 ## Features
 
